@@ -1,0 +1,3 @@
+[submodule "node/hummingbird"]
+	path = node/hummingbird
+	url = git://github.com/srid/hummingbird.git
