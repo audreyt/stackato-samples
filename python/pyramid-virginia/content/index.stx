@@ -1,0 +1,6 @@
+Hello!
+
+   This is "virginia":https://github.com/Pylons/virginia/, a Pyramid
+   app demonstrating **file-system** based content publishing. See
+   "the source for this
+   page":http://gitolite.activestate.com/?p=vcap.git;a=blob;f=examples/virginia/content/index.stx;hb=refs/heads/python.
