@@ -1,0 +1,75 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+    "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ *
+ * Copyright (c) 2011 ActiveState Software Inc.
+ * See the file LICENSE.txt for licensing information.
+ *-->
+<html lang="en">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <!--<link href="/bookbuzz.css" rel="stylesheet" type="text/css" media="screen" />-->
+
+    <title>
+      Bookbuzz: Books by Buzz: Amazon Rank + Relative Twitter Activity: {{startDate}} : {{endDate}}
+    </title>
+    <!--<script type="text/javascript" src="http://www.google.com/jsapi"></script>-->
+   <!-- <script type="text/javascript">
+      google.load('visualization', '1', {packages: ['corechart']});
+    </script>-->
+    <style>
+        div.flash2 {
+            border: solid red 1px;
+        }
+        div.flash1 {
+            border: solid rgb(f08080) 1px;
+        }
+        div.flash0, div.flash {
+            display: none;
+        }
+    </style>
+    <script type="text/javascript">
+    // <![CDATA[
+    var updateRefreshViewLink;
+    function onload() {
+      window.removeEventListener('load', onload, false);
+      var defaultDateParameters = "startDate={{startDateISO}}&endDate={{endDateISO}}";
+      var asinBookHrefUrlStart = "/bookbuzz/showBookRankGraph";
+      var bookLink = document.getElementById("bookLink");
+      var dateStartElt = document.getElementById("dateStart");
+      var dateEndElt = document.getElementById("dateEnd");
+      updateRefreshViewLink = function(event) {
+        var dateStart = dateStartElt.value;
+        var dateEnd = dateEndElt.value;
+        if (dateStart && dateEnd) {
+            var href = (asinBookHrefUrlStart
+                        + "?startDate="
+                        + dateStart
+                        + "&endDate="
+                        + dateEnd);
+            bookLink.setAttribute("href", href);
+        } else {
+            bookLink.removeAttribute("href");
+        }
+      };
+      updateRefreshViewLink();
+      dateStartElt.addEventListener('keyup', updateRefreshViewLink, false);
+      dateEndElt.addEventListener('keyup',   updateRefreshViewLink, false);
+    }
+    window.addEventListener('load', onload, false);
+      // ]]>
+    </script>
+  </head>
+  <body style="font-family: Arial;border: 0 none;">
+    <h2>Bookbuzz: try another pair of dates</h2>
+    <div id="flash" class="flash{{flashLevel}}">{{flashMessage|safe}}
+    </div>
+    <div>
+      Set start date: <input type="text" id="dateStart" value="{{startDateISO}}" >
+        Set end date: <input type="text" id="dateEnd" value="{{endDateISO}}" >
+        <a id="bookLink" >show chart</a>
+    </div>
+    <div id="temp" ><p>temp stuff here:</p>
+    </div>
+  </body>
+</html>

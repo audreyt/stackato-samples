@@ -1,0 +1,27 @@
+<!--
+ *
+ * Copyright (c) 2011 ActiveState Software Inc.
+ * See the file LICENSE.txt for licensing information.
+ *-->
+<h2>Bookbuzz</h2>
+
+{% if books %}
+  <table border="none" cellpadding="1" cellspacing="1">
+    <thead<td>title</td><td>author</td><td>asin</td><td>group</td><td>date added</td></thead>
+  {% for book in books %}
+  <tr>
+    {% url amazon.views.showRanksForBook book.asin as url2 %}
+    <td><a href="{{ url2 }}">{{ book.title}}</a></td>
+    <td>{{ book.author}}</td>
+    <td>{{ book.asin}}</td>
+    <td>{{ book.productGroup}}</td>
+    <td>{{ book.dateAdded}}</td>
+  </tr>
+  {% endfor %}
+  </table>
+{% else %}
+  <p>No books in the list yet</p>
+{% endif %}
+<a href="/bookbuzz/showBookRankGraph/">Graph</a>
+
+

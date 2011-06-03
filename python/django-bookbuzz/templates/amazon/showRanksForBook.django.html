@@ -1,0 +1,30 @@
+<!--
+ *
+ * Copyright (c) 2011 ActiveState Software Inc.
+ * See the file LICENSE.txt for licensing information.
+ *-->
+{% if ranks %}
+  <table border="none" cellpadding="1" cellspacing="1">
+    <thead<td>title</td><td>author</td><td>asin</td><td>group</td><td>date added</td></thead>
+        <tr>
+          <td>{{ book.title|safe}}</td>
+          <td>{{ book.author|safe}}</td>
+          <td>{{ book.asin}}</td>
+          <td>{{ book.productGroup}}</td>
+          <td>{{ book.dateAdded}}</td>
+        </tr>
+    {% for rank in ranks %}
+        <tr><td>&nbsp;</td><td> {{ rank.rank }}</td>
+             <td> {{ rank.dateStamp }} </td><td>&nbsp;</td><td>&nbsp;</td></tr>
+    {% endfor %}
+    <tr><td>Tweets</td><td colspan="4">&nbsp;</td></tr>
+    {% for tweet in tweets %}
+        <tr><td>&nbsp;</td>
+            <td>{{tweet.text|safe}}</td>
+            <td>@{{tweet.twitterUser.userName}}</td>
+            <td>{{ tweet.createdAt }}</td>
+        </tr>
+    {% endfor %}
+{% else %}
+    <p>No ranks for book {{ book.asin }} </p>
+{% endif %}

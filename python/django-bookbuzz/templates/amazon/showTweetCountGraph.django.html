@@ -1,0 +1,89 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+    "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ *
+ * Copyright (c) 2011 ActiveState Software Inc.
+ * See the file LICENSE.txt for licensing information.
+ *-->
+<html lang="en">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <title>
+      Bookbuzz: Books by Rank: {{startDate}} : {{endDate}}
+    </title>
+    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+    <script type="text/javascript">
+      google.load('visualization', '1', {packages: ['corechart']});
+    </script>
+    <script type="text/javascript">
+         
+      function drawVisualization() {
+        // Create and populate the data table.
+        var data = new google.visualization.DataTable(); // Not same as the "dataTable" template parameter
+        var bookAsins = [
+          {% for asin in book_asins %}
+            '{{asin|safe}}',
+          {% endfor %}
+          null
+        ];
+        var bookTitles = [
+          {% for title in book_titles %}
+            '{{title|safe|escapejs}}',
+          {% endfor %}
+          null
+        ];
+        {% for addColumn in dataTable.addColumns %}
+          data.addColumn('{{addColumn.columnType}}', '{{addColumn.value|safe|escapejs }}');
+        {% endfor %}
+        {% for addRow in dataTable.addRows %}
+            data.addRow([ {% for val in addRow %}{{ val|safe }}{% if forloop.last %}{% else %}, {% endif %} {% endfor %} ]);
+        {% endfor %}
+       
+        // Create and draw the visualization.
+        var chart = new google.visualization.ColumnChart(document.getElementById('visualization'));
+        chart.draw(data, {curveType: "function",
+                        enableEvents: true,
+                          title: "# Tweets per day",
+                        width: 1000, height: 400,
+                        vAxis: {maxValue: {{ maxValueForGraph }} } }
+                );
+        var mouseEventHandler = function() {
+          var row, column, selection = chart.getSelection()[0];
+          row = selection.row;
+          column = selection.column - 1; // col 0 for date
+          var twitterLink = document.getElementById('twitterLink');
+          var selectedRow = document.getElementById('selectedRow');
+          var selectedColumn = document.getElementById('selectedColumn');
+          twitterLink.style.display = "block";
+          selectedRow.innerHTML = "Row: " + row + ": " + bookTitles[row];
+          selectedColumn.innerHTML = "Column: " + column + ": " + bookTitles[column];
+          var asinTweetHRef = document.getElementById('asinTweetHRef');
+          asinTweetHRef.innerHTML = ("Show <a href='"
+                                     + (asinTweetHrefUrlStart + "&asin=" + bookAsins[column])
+                                     + "'>"
+                                     + bookTitles[column]
+                                     + "</a>");
+        };
+        google.visualization.events.addListener(chart, 'select', mouseEventHandler);
+      }
+
+      google.setOnLoadCallback(drawVisualization);
+      
+      var asinTweetHrefUrlStart = "/bookbuzz/showTweetsForBook?startDate={{startDateISO}}&endDate={{endDateISO}}";
+    </script>
+  </head>
+  <body style="font-family: Arial;border: 0 none;">
+    <h2>Bookbuzz: Books by Ranks for {{ startDate }} - {{ endDate }}</h2>
+    <div id="visualization" style="width: 500px; height: 400px;"></div>
+    <div id="showBookRanks">
+      <a href="/bookbuzz/showBookRankGraphForInterval?startDate={{startDateISO}}&endDate={{endDateISO}}">Show Books by Rank</a>
+    </div>
+    <div id="temp" ><p>temp stuff here:</p>
+    </div>
+    <div id="selectedRow" style="display: none;"></div>
+    <div id="selectedColumn" style="display: none;"></div>
+    <div id="twitterLink" style="display: none;">
+      Show tweet counts for <span id="asinTweetHRef"></span>
+    </div>
+  </body>
+</html>

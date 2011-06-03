@@ -1,0 +1,243 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+    "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ *
+ * Copyright (c) 2011 ActiveState Software Inc.
+ * See the file LICENSE.txt for licensing information.
+ *-->
+<html lang="en">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <title>
+      Bookbuzz: Amazon Rank + Twitter Activity: {{ startDateISO }} : {{endDateISO}}
+    </title>
+    {% if book_titles %}
+    <script type="text/javascript" src="http://code.jquery.com/jquery-1.6.1.min.js"></script>
+    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+    <script type="text/javascript">
+      google.load('visualization', '1', {packages: ['corechart']});
+    </script>
+    <link rel="stylesheet" href="/bookbuzz/static/css/bookbuzz.css" type="text/css" />
+    <script type="text/javascript" src="/bookbuzz/static/js/bookbuzz.js"></script>
+
+    <script type="text/javascript">
+         
+      var bookAsins = [
+        {% for asin in book_asins %}
+          '{{asin|safe}}',
+        {% endfor %}
+        null
+      ];
+      var bookTitles = [
+        {% for title in book_titles %}
+          '{{title|safe|escapejs}}',
+        {% endfor %}
+        null
+      ];
+      var productSmallImageURLs = [
+        {% for url in product_small_urls %}
+          '{{url}}',
+        {% endfor %}
+        null
+      ];
+      var productMediumImageURLs = [
+        {% for url in product_medium_urls %}
+          '{{url}}',
+        {% endfor %}
+        null
+      ];
+      var isoDates = [
+        {% for isoDate in isoDates %}
+          "{{ isoDate }}",
+        {% endfor %}
+        null
+      ];
+        
+      var asinPosCollapsedTweetCounts = [
+      {% for row in dataTable.asinPosCollapsedTweetCounts %}
+        [{{ row }}],
+      {% endfor %}
+      []
+      ];
+      
+      function drawVisualization() {
+        // Create and populate the data table.
+        var data = new google.visualization.DataTable(); // Not same as the "dataTable" template parameter
+        {% for addColumn in dataTable.addColumns %}
+          data.addColumn('{{addColumn.columnType}}', '{{addColumn.value|safe|escapejs }}');
+        {% endfor %}
+        //data.addColumn('string', 'month');
+        //data.addColumn('number', 'Thank You Notes');
+        //...
+        {% for addRow in dataTable.addRows %}
+            data.addRow([ {% for val in addRow %}{{ val|safe }}{% if forloop.last %}{% else %}, {% endif %} {% endfor %} ]);
+        {% endfor %}
+            
+        //data.addRow(['05/24/2011', 0, 8.0, 9.0, 3.0, 1.0, 6.0, 2.0, 5.0, 7.0, 4.0, 10.0]);
+        //...
+       
+        // Create and draw the visualization.
+        var chart = new google.visualization.ColumnChart(document.getElementById('visualization'));
+        chart.draw(data, {curveType: "function",
+                        enableEvents: true,
+                          title: "Rank per day",
+                        width: 1000, height: 400,
+                        vAxis: {maxValue: 10}}
+                );
+        var pluralizeWord = function(word, count) {
+          if (count == 1) return word;
+          return word + "s";
+        };
+        var mouseEventHandler = function() {
+          var column, selection = chart.getSelection()[0];
+          if (!selection) {
+            return;
+          }
+          row = selection.row;
+          column = selection.column - 1; // col 0 for date
+          var twitterLink = document.getElementById('twitterLink');
+          var selectedColumn = document.getElementById('selectedColumn');
+          twitterLink.style.display = "block";
+          selectedColumn.innerHTML = "Column: " + column + ": " + bookTitles[column];
+          var asinTweetHRef = document.getElementById('asinTweetHRef');
+          
+          var innerHTML = ("Show info on "
+                           + bookTitles[column]
+                           + " ("
+                           + bookAsins[column]
+                           + ")"
+                           + "</a>");
+          var count = asinPosCollapsedTweetCounts[column][row];
+          innerHTML += (", "
+                        + count
+                        + " "
+                        + pluralizeWord("tweet", count)
+                        + " for this day.  ");
+          var smallImageURL = productSmallImageURLs[column];
+          if (smallImageURL) {
+              innerHTML += ('<img src="'
+                            + smallImageURL
+                            + '">');
+          }
+          /*
+          var mediumImageURL = productMediumImageURLs[column];
+          if (mediumImageURL) {
+              innerHTML += ('<img src="'
+                            + mediumImageURL
+                            + '">');
+          }
+          */
+          asinTweetHRef.innerHTML = innerHTML;
+          try {
+            getTweets(row, column);
+          } catch(ex) {
+            alert("prob in getTweets: " + ex)
+          }
+        };
+        google.visualization.events.addListener(chart, 'select', mouseEventHandler);
+      }
+
+      google.setOnLoadCallback(drawVisualization);
+      </script>
+      {% endif %}
+      {% if flashLevel %}
+    <style>
+        div.flash2 {
+            border: solid red 1px;
+        }
+        div.flash1 {
+            border: solid rgb(f08080) 1px;
+        }
+        div.flash0, div.flash {
+            display: none;
+        }
+    </style>
+      {% endif %}
+    <script type="text/javascript">
+    // <![CDATA[
+    var updateRefreshViewLink, getTweets, h;
+    function onload() {
+        window.removeEventListener('load', onload, false);
+        initSidebar();
+        var defaultDateParameters = "startDate={{startDateISO}}&endDate={{endDateISO}}";
+        var asinBookHrefUrlStart = "/bookbuzz/showBookRankGraph";
+        var bookLink = document.getElementById("bookLink");
+        var dateStartElt = document.getElementById("dateStart");
+        var dateEndElt = document.getElementById("dateEnd");
+        var makeDateLink = function(dateStart, dateEnd) {
+          return (asinBookHrefUrlStart
+                  + "?startDate="
+                  + dateStart
+                  + "&endDate="
+                  + dateEnd);
+        }
+        updateRefreshViewLink = function(event) {
+          var dateStart = dateStartElt.value;
+          var dateEnd = dateEndElt.value;
+          if (dateStart && dateEnd) {
+              var href = makeDateLink(dateStart, dateEnd)
+              bookLink.setAttribute("href", href);
+          } else {
+              bookLink.removeAttribute("href");
+          }
+        };
+        updateRefreshViewLink();
+        dateStartElt.addEventListener('keyup', updateRefreshViewLink, false);
+        dateEndElt.addEventListener('keyup',   updateRefreshViewLink, false);
+        {% if prevWeekLinkOK or nextWeekLinkOK %}
+          document.getElementById("otherWeeks").style.display = "block";
+          var prevWeekLink = document.getElementById("prevWeekLink");
+          var nextWeekLink = document.getElementById("nextWeekLink");
+          {% if prevWeekLinkOK %}
+            prevWeekLink.setAttribute("href", makeDateLink("{{prevWeekStartDate}}", "{{prevWeekEndDate}}"));
+          {% else %}
+            prevWeekLink.removeAttribute("href");
+          {% endif %}
+          {% if nextWeekLinkOK %}
+            nextWeekLink.setAttribute("href", makeDateLink("{{nextWeekStartDate}}", "{{nextWeekEndDate}}"));
+          {% else %}
+            nextWeekLink.removeAttribute("href");
+          {% endif %}
+        {% endif %}
+        
+      }
+      window.addEventListener('load', onload, false);
+      // ]]>
+    </script>
+  </head>
+  <body style="font-family: Arial;border: 0 none;">
+    {% if flashLevel %}
+    <h2>Bookbuzz: Problems...</h2>
+    {% else %}
+    <h2>Bookbuzz: What's Hot for {{ startDateISO }} - {{ endDateSub1ISO }}</h2>
+    {% endif %}
+    {% if flashLevel %}
+    <div id="flash" class="flash{{flashLevel}}">{{flashMessage|safe}}
+    </div>
+    {% else %}
+      <div id="visualization" style="width: 500px; height: 400px;"></div>
+      <div id= "otherWeeks" style="display: none;">
+        <a id="prevWeekLink" >&lt;-- Earlier</a><br />
+        <a id="nextWeekLink" >Later --></a><br />
+      </div>
+    {% endif %}
+    <div>
+      Set start date: <input type="text" id="dateStart" value="{{startDateISO}}" >
+        Set end date: <input type="text" id="dateEnd" value="{{endDateSub1ISO}}" >
+        <a id="bookLink" >show chart</a>
+    </div>
+      {% if flashLevel %}
+      {% else %}
+    <div id="selectedColumn" style="display: none;"></div>
+    <div id="twitterLink" style="display: none;">
+      Show tweet counts for <span id="asinTweetHRef"></span>
+    </div>
+    <div id="tweetDump" style="display: none;" >
+      <p id='twitterHeader'>Content from </span>
+      <img src="/bookbuzz/static/assets/logo_twitter_withbird_h24xw129_allblue.png" ><br>
+      </p>
+      <ul id="tweetDump-list">
+      </ul>
+      {% endif %}
+  </body>
+</html>
