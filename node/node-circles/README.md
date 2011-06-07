@@ -1,8 +1,7 @@
-# An example of maga, a nodeJS multiplayer physics-based game framework
+# Node Circles
 
-node-circles is a physics-based graphical demonstration of the
-[maga](https://github.com/stagas/maga/tree/#readme) framework for
-node.js.
+A demo built on the [maga](https://github.com/stagas/maga/tree/#readme)
+multi-player physics based game framework for Node.js.
 
 ## Local development
 

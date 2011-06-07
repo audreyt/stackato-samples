@@ -1,8 +1,8 @@
-# Django app based on its default template
+# Django default
 
-This is based on the default template created by Django's
+This is a simple app based on the default template created by Django's
 [startproject](https://docs.djangoproject.com/en/dev/intro/tutorial01/#creating-a-project)`
-command.
+command. 
 
 ## Local development
 

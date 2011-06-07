@@ -1,7 +1,7 @@
-# Tornado Chat demo
+# Tornado Chat
 
-This is a multi-user chat application based on the Tornado Python
-webframework. It uses your Google account for login.
+This is a multi-user chat demo application based on the Tornado Python
+web framework. It uses your Google account for login.
 
 ## Local development
 
