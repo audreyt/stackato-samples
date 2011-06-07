@@ -1,3 +1,6 @@
 [submodule "node/hummingbird"]
 	path = node/hummingbird
 	url = git://github.com/srid/hummingbird.git
+[submodule "perl/mojo-photobooth"]
+	path = perl/mojo-photobooth
+	url = git://github.com/ActiveState/photobooth.git
