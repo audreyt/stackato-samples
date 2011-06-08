@@ -40,10 +40,10 @@ for arg in $* ; do
   esac
 done
 if [ ! -z $doBooks ] ; then
-    stackato run bookbuzz "python amazon/awsRequest.py -b"
+    stackato run bookbuzz python amazon/awsRequest.py -b
 fi
 if [ ! -z $doTweets ] ; then
-    stackato run bookbuzz "python amazon/awsRequest.py -t"
+    stackato run bookbuzz python amazon/awsRequest.py -t
 fi
 </pre>
 
