@@ -10,5 +10,11 @@ multi-player physics based game framework for Node.js.
 
 ## Deploying to Stackato
 
+Make sure that you have installed the dependencies using `npm` as the
+Stackato server requires them.
+
     npm install confu express express-expose maga socket.io
+
+Then deploy,
+
     stackato push node-circles
