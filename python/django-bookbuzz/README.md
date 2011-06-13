@@ -8,10 +8,9 @@ Amazon.com to run this code.  Details are at
 
 Create a file amazon/amazonKeys.py with the following two lines:
 
-<pre>
-AccessKey = "xxxxxxxxxxxxxxxxxxxx"
-SecretAccessKey = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-</pre>
+    AccessKey = "xxxxxxxxxxxxxxxxxxxx"
+    SecretAccessKey = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
 
 ## What the app does
 
@@ -28,8 +27,7 @@ a cronjob that runs this script periodically:
 
 <pre>
 #!/bin/sh
-export PATH=# requires ActivePython 2.6 with django 1.3+, ActiveTcl 8.5, and the
-# stackato client (in my case at $HOME/apps/stackato/vmc-tcl/bin)
+export PATH=# requires ActivePython 2.7 with django 1.3 and stackato client
 
 doBooks=
 doTweets=
