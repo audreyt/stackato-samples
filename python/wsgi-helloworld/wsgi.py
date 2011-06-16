@@ -1,4 +1,5 @@
 import os
+import sys
 from wsgiref.simple_server import make_server
 
 # Every WSGI application must have an application object - a callable
@@ -11,17 +12,18 @@ def hello_world_app(environ, start_response):
     status = '200 OK' # HTTP Status
     headers = [('Content-type', 'text/plain')] # HTTP Headers
     start_response(status, headers)
+    pyver = '.'.join(map(str, tuple(sys.version_info)[:3]))
 
     # The returned object is going to be printed
-    return ["Hello World (from Python WSGI)"]
+    return ["Hello World (from Python %s WSGI)" % pyver]
 
 
 # For gunicorn
 application = hello_world_app
 
 
-# port = int(os.getenv('VMC_APP_PORT', '8000'))
-# httpd = make_server('', port, hello_world_app)
-# print("Serving on port %s..." % port)
-# Serve until process is killed
-# httpd.serve_forever()
+if __name__ == '__main__':
+    port = int(os.getenv('VMC_APP_PORT', '8000'))
+    srv = make_server('localhost', port, application)
+    srv.serve_forever()
+
