@@ -6,4 +6,4 @@
 
 ## Deploying to Stackato
 
-    stackato push bottle-py3
+    stackato push --runtime python32 bottle-py3
