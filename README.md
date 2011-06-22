@@ -8,7 +8,7 @@ You'll need a Stackato VM and the stackato client for these
 demos. Binaries for Windows, Mac OS X and Linux can be downloaded from
 [community.activestate.com](http://community.activestate.com/stackato/download).
 
-If you have ActivePython 2.6 or 2.7, use pypm:
+If you have ActivePython 2.7 or 3.2, use pypm:
 
     pypm install stackato
   
