@@ -1,0 +1,42 @@
+Metadata-Version: 1.0
+Name: virginia
+Version: 0.0
+Summary: Serve slightly dynamic filesystem content via Pyramid
+Home-page: http://docs.pylonshq.com
+Author: Agendaless Consulting
+Author-email: pylons-devel@googlegroups.com
+License: BSD-derived (http://www.repoze.org/LICENSE.txt)
+Description: # A Pyramid sample app
+        
+        This package provides a Pyramid application that is willing to serve slightly
+        dynamic file content from a disk directory.
+        
+        
+        ## Local development
+        
+            pypm install -r requirements.txt
+            paster serve development.ini
+        
+        ## Deploying to Stackato
+        
+            stackato push pyramid-virginia
+        
+        
+        CHANGES
+        
+        0.0
+        ===
+        
+        - Forked from repoze.virginia after 0.1.
+        
+        
+        
+Keywords: file server pyramid pylons
+Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python
+Classifier: Topic :: Internet :: WWW/HTTP
+Classifier: Topic :: Internet :: WWW/HTTP :: Dynamic Content
+Classifier: Topic :: Internet :: WWW/HTTP :: WSGI
+Classifier: Topic :: Internet :: WWW/HTTP :: WSGI :: Application
