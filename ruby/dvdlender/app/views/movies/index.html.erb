@@ -1,0 +1,35 @@
+<h2>Movies</h2>
+
+  <table>
+    <tr>
+      <th class="dvdlib_header">Title</th>
+      <th class="dvdlib_header">Status</th>
+    </tr>
+   <% for movie in @movies %>
+    <tr>
+    <td class="dvdlib_item"><%= movie.title %></td>
+    <td class="dvdlib_item"><%= movie.year %></td>
+    <td><%= link_to 'Show', movie %></td>
+    <td><%= link_to 'Edit', edit_movie_path(movie) %></td>
+    <td><%= link_to 'Destroy', movie, :confirm => 'Are you sure?', :method => :delete %></td>
+      <% if movie.borrower %>
+      <td class="dvdlib_item">Signed out by: <%= h movie.borrower %></td>
+      <td class="dvdlib_item">Due <%= h movie.due_on %></td>
+      <td class="dvdlib_item"><%= link_to 'Return', :action => 'return', :id => movie %></td>
+      <% else %>
+      <td class="dvdlib_item"><%= link_to 'Check out', :action => 'checkout', :id => movie %></td>
+      <td class="dvdlib_item"><%= link_to 'Remove', { :action => 'destroy', :id => movie },
+         :confirm => 'Are you sure?', :method => :delete %></td>
+      <% end %>
+      <td class="dvdlib_item"><%= link_to 'Show', movie %></td>
+      <td class="dvdlib_item"><%= link_to 'Edit', edit_movie_path(movie) %></td>
+    </tr>
+   <% end %>
+  </table>
+  <% if @movies.size > 0 -%>
+  <br />
+  <%= will_paginate(@movies) %>
+  <% end %>
+  <br />
+  <%= link_to 'Add new movie', new_movie_path %>
+  

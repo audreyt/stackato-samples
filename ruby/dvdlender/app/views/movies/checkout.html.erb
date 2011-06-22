@@ -1,0 +1,7 @@
+<h1>Checkout a movie</h1>
+<p>Title: <%= h @movie.title %></p>
+<% form_tag :action => 'checkout', :id => @movie do %>
+  <p>Your name: <%= text_field(:movie, :borrower) %>
+  <%= submit_tag 'Check out' %>
+<% end %>
+<%= link_to 'Back to the library', movies_path %>

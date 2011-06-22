@@ -1,0 +1,9 @@
+# Read about fixtures at http://ar.rubyonrails.org/classes/Fixtures.html
+
+one:
+  title: Super 8
+  year: 2010
+
+two:
+  title: Secret 6
+  year: 2011

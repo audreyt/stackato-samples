@@ -1,0 +1,11 @@
+<h1>New movie</h1>
+
+<%= render 'form' %>
+
+<%= link_to 'Back', movies_path %>
+
+<script type="text/javascript">
+  Event.observe(window, "load", function() {
+      $('movie_title').focus();
+      });
+  </script>
