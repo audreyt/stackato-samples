@@ -1,24 +1,23 @@
 use Mojolicious::Lite;
 
-# Simple route with plain text response
-get '/hello' => sub { shift->render_text('Hello World!') };
+# Simple plain text response
+get '/' => sub { shift->render_text('Hello World!') };
 
-# Route to template in DATA section
+# Route associating the "/time" URL to template in DATA section
 get '/time' => 'clock';
 
 # RESTful web service sending JSON responses
-get '/:offset' => sub {
-  my $self   = shift;
-  my $offset = $self->param('offset') || 23;
-  $self->render_json({list => [0 .. $offset]});
+get '/list/:offset' => sub {
+  my $self = shift;
+  $self->render_json({list => [0 .. $self->param('offset')]});
 };
 
-# Scrape information from remote sites
+# Scrape and return information from remote sites
 post '/title' => sub {
   my $self = shift;
   my $url  = $self->param('url') || 'http://mojolicio.us';
   $self->render_text(
-    $self->ua->get($url)->res->dom->at('head > title')->text);
+    $self->ua->get($url)->res->dom->html->head->title->text);
 };
 
 # WebSocket echo service
@@ -38,4 +37,3 @@ __DATA__
 <%= link_to clock => begin %>
   The time is <%= $hour %>:<%= $minute %>:<%= $second %>.
 <% end %>
-
