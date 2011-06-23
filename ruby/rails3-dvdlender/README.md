@@ -17,6 +17,12 @@ This document shows how to deploy and run it on Stackato.
         gem 'thin'
         gem 'mysql2', '< 0.3'
 
+   Also, the Rails tutorial in Komodo calls for adding the will_paginate plugin using a macro which wraps Rails' `plugin install' functionality. This will add this line to the Gemfile:
+
+        gem 'will_paginate', :git => 'git://github.com/mislav/will_paginate.git', :branch => "rails3" 
+
+    Be sure to delete it before moving to the next step.
+
 3. After the Gemfile has been updated, type
 
         bundle install
