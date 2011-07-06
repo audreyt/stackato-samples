@@ -1,0 +1,5 @@
+Catalyst::Runtime
+Catalyst::Engine::PSGI
+Catalyst::Plugin::ConfigLoader
+Catalyst::Plugin::Static::Simple
+Catalyst::Action::RenderView
