@@ -1,5 +1,6 @@
 Catalyst::Runtime
 Catalyst::Engine::PSGI
+Plack::Middleware::ReverseProxy
 Catalyst::Plugin::ConfigLoader
 Catalyst::Plugin::Static::Simple
 Catalyst::Action::RenderView
