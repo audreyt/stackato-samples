@@ -24,5 +24,6 @@ my $app = sub {
 };
 builder {
     # Include PSGI middleware here
+    enable "Plack::Middleware::ReverseProxy";
     $app;
 };
