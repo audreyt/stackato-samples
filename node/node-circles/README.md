@@ -10,4 +10,5 @@ multi-player physics based game framework for Node.js.
 
 ## Deploying to Stackato
 
-    stackato push node-circles
+   rm -rf node_modules/  # remove local dependencies
+   stackato push node-circles
