@@ -23,15 +23,31 @@ class Wrapper
   
   def http_get(path, params=nil)
     http = Net::HTTP.new(@host, @port)
-    begin
-      return http.get("#{path}?".concat(params.collect { |k,v| "#{k}=#{CGI::escape(v.to_s)}" }.join('&'))) if not params.nil?
-      return http.get(path)
-    rescue
-      $stderr.puts "Error in http_get #{@host}:#{@port}#{path}: #{$!}"
-      raise
+    lim = 3
+    i = 0
+    while true
+      begin
+        return http.get("#{path}?".concat(params.collect { |k,v| "#{k}=#{CGI::escape(v.to_s)}" }.join('&'))) if not params.nil?
+        return http.get(path)
+      rescue
+        raise if i >= 4
+        $stderr.puts "Error in http_get #{@host}:#{@port}#{path}: #{$!}"
+	raise if @host.index("stackato").nil?
+        $stderr.puts "Try restarting stackato..."
+        system("stackato restart prezbuzz")
+        # system("stackato target api.stackato.activestate.com && stackato login stackato restart prezbuzz")
+      end
+      i += 1
     end 
   end
   
+  def ping
+    res = http_get('/harvester/hello')
+    if res.body != "hello"
+        puts res.body
+    end
+  end
+
   def initApp
     res = http_get('/harvester/initApp')
     return res.body
@@ -45,7 +61,8 @@ class Wrapper
     @numCandidates = res.body.to_i
     res = http_get('/harvester/getFirstCandidateID')
     @candidateID = res.body
-    @lastStopTime = http_get('/harvester/getLastStopTime').body
+    stopTime = http_get('/harvester/getLastStopTime').body
+    @lastStopTime = (stopTime.nil? || stopTime.size == 0) ? 0 : stopTime
   end
   
   def getTweetsForCurrentCandidate
@@ -60,14 +77,24 @@ class Wrapper
       if @nextPage.nil? || !@nextPage.index("page=20").nil?
         break
       end
+      sleep 3
     end
   end
   
   def runThroughCandidates
     while true
-      getTweetsForCurrentCandidate
+      begin
+        getTweetsForCurrentCandidate
+      rescue
+        $stderr.puts "runThroughCandidates: getTweetsForCurrentCandidate: error: #{$!}"
+      end
       params = { :candidateID => @candidateID }
-      res = http_get('/harvester/getNextCandidateID', params)
+      begin
+        res = http_get('/harvester/getNextCandidateID', params)
+      rescue
+        $stderr.puts "runThroughCandidates: /harvester/getNextCandidateID: error: #{$!}"
+        exit
+      end
       id = res.body.to_i
       break if id == -1
       @nextPage = nil
@@ -107,7 +134,7 @@ class Wrapper
     num_successes = 0
     while @tweetIdx < @tweetLimit
       tweet = @tweets[@tweetIdx]
-      tweetText = makeSafeViewableHTML(tweet['text'])
+      tweetText = tweet['text']
       @tweetIdx += 1
       params = {:candidateID => @candidateID,
                               :lastStopTime => @lastStopTime,
@@ -120,38 +147,20 @@ class Wrapper
       resp = JSON.parse(response.body)
       if resp['status'] == 0 # tweetText 
         num_successes += 1
-      elsif @verbose
-          $stderr.puts("problem updating tweet #{tweetText}: #{response.body}")
+      else
+	if @verbose
+	    $stderr.puts("problem updating tweet #{tweetText}: #{response.body}")
+	end
+	if response.body['reject'] == "MYSQL_PERMISSIONS_ERROR"
+	  return false
+	end
+      end
+      if @tweetIdx % 10 == 0
+          sleep 1
+	  # Give nginx a break?
       end
     end
     return num_successes > 0
-  end
-  
-  @@linkStart_re = /\A<[^>]*?href=["']\Z/
-  @@splitter = /(<[^>]*?href=["']|http:\/\/[^"' \t]+)/
-  def makeSafeViewableHTML(text)
-    revEnts = [
-        ['&lt;', '<'],
-        ['&gt;', '>'],
-        ['&quot;', '"'],
-        ['&apos;', '\''],
-        ['&amp;', '&'],
-    ]
-    revEnts.each { |src, dest| text.gsub(src, dest) }
-    pieces = text.split(@@splitter).grep(/./)
-    lim = pieces.size
-    piece = pieces[0]
-    madeChange = false
-    (1 .. lim - 1).each do |i|
-      prevPiece = piece
-      piece = pieces[i]
-      if piece.index('http://') == 0 && @@linkStart_re !~ prevPiece
-        pieces[i] = '<a href="%s">%s</a>' % [piece, piece]
-        madeChange = true
-      end
-    end
-    #TODO: Watch out for on* attributes and script & style tags
-    return madeChange ? pieces.join("") : text
   end
   
   def updateLastStopTime
@@ -182,9 +191,10 @@ if __FILE__ == $0
   #print "options:" ; p options ; print "\n"
   case  ARGV[0]
   when "init", "initApp"
-    w.setup1
     res = w.initApp
     puts res
+  when "ping"
+    w.ping
   when "update"
     w.setup1
     w.runThroughCandidates

@@ -2,14 +2,15 @@
        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
 <!--
-# Copyright (c) 2011 ActiveState Software Inc.
-# See the file LICENSE.txt for licensing information.
+Copyright (c) 2011 ActiveState Software Inc.
+See the file LICENSE.txt for licensing information.
 -->
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
   <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
   <title>CandidateBuzz</title>
   <% if defined? @maxSize %>
+    <%= stylesheet_link_tag 'jquery.jscrollpane' %>
     <script type="text/javascript" src="http://code.jquery.com/jquery-1.6.1.min.js"></script>
     <script type="text/javascript" src="http://www.google.com/jsapi"></script>
     <script type="text/javascript">
@@ -17,14 +18,20 @@
     </script>
     <%= javascript_include_tag 'jqcloud-0.1.8.js' %>
     <%= stylesheet_link_tag 'jqcloud' %>
-    <%= javascript_include_tag 'sweetpages' %>
-    <%= stylesheet_link_tag 'sweetpages' %>
+    <%= javascript_include_tag 'jquery.mousewheel' %>
+    <%= javascript_include_tag 'jquery.jscrollpane.min' %>
+    <%= javascript_include_tag 'jquery.simplemodal.1.4.1.min' %>
     <%= javascript_include_tag 'candidateBuzz' %>
     <%= stylesheet_link_tag 'candidateBuzz' %>
     <script type="text/javascript" >
       //<![CDATA[
       var intervalCandidatePosnTweetCounts, clickColumnToDataColumn;
       var candidateNames, isoStartDates, gEndDate;
+      if (typeof(console) == "undefined") console = {
+        log: function(msg) {
+          //document.getElementById("console").value = msg;
+        }
+      };
       function drawVisualization() {
         intervalCandidatePosnTweetCounts = [];
         candidateNames = [];
@@ -58,15 +65,16 @@
           startDate = interval[:startDate]
           %>
           isoStartDates.push("<%= startDate %>");
-          <% filteredCandidates = @candidates.find_all{|candidate| num_tweets_by_candidate[candidate]} %>
+          <% filteredCandidates = @candidates.reject{|candidate| @candidates_to_drop.has_key?(candidate.id)} %>
+          <%= "/*filteredCandidates info: \n #{filteredCandidates}\n */" %>
           data.addRow([ "<%= startDate.to_time.localtime.strftime(@formatTimes[0]) %>",
-          <%= filteredCandidates.map { |candidate| num_tweets_by_candidate[candidate]}.join(", ") %>]);
+          <%= filteredCandidates.map { |candidate| num_tweets_by_candidate[candidate.id]}.join(", ") %>]);
           <% @formatTimes.shift if @formatTimes.size > 1 %>
           var thisCandidatePosnTweetCounts = [];
           intervalCandidatePosnTweetCounts.push(thisCandidatePosnTweetCounts);
           <% @candidates.each do |candidate|  %>
             <% if ! @candidates_to_drop[candidate.id]  %>
-              thisCandidatePosnTweetCounts.push(<%= num_tweets_by_candidate[candidate] %>)
+              thisCandidatePosnTweetCounts.push(<%= num_tweets_by_candidate[candidate.id] %>)
             <% end %>
           <% end %>
         <% end %>
@@ -74,11 +82,11 @@
         // Create and draw the visualization.
         var chart = new google.visualization.ColumnChart(document.getElementById('visualization'));
         chart.draw(data, {curveType: "function",
-                          enableEvents: true,
+                        enableEvents: true,
                           title: "Tweets per hour",
                           colors: colors_for_candidates,
-                          width: 1050, height: 400,
-                          vAxis: {maxValue: <%= @maxSize %>}}
+                        width: 1050, height: 400,
+                        vAxis: {maxValue: <%= @maxSize %>}}
                 );
         var pluralizeWord = function(word, count) {
           if (count == 1) return word;
@@ -87,42 +95,17 @@
         var mouseEventHandler = function() {
           var dataColumn, clickColumn, selection = chart.getSelection()[0];
           if (!selection) {
+              alert("clickHandler: no selection!... ");
             return;
           }
           row = selection.row;
           clickColumn = selection.column - 1; // col 0 for date
           dataColumn = clickColumnToDataColumn[clickColumn];
-          //alert("pressed row " + row + ", col " + column)
-          var twitterLink = document.getElementById('twitterLink');
-          var selectedColumn = document.getElementById('selectedColumn');
-          twitterLink.style.display = "block";
-          console.log("Column: " + dataColumn + ": " + candidateNames[clickColumn]);
           var candidateName = candidateNames[clickColumn];
           $("body").attr("class", candidateName);
           
           loadCandidateContent(clickColumn, row);
           
-          var asinTweetHRef = document.getElementById('asinTweetHRef');
-          
-          var innerHTML = ("Show tweets for "
-                           + candidateNames[clickColumn]
-                           + "</a>");
-          var count;
-          if (row === undefined) {
-            count = 0;
-            var len = intervalCandidatePosnTweetCounts.length;
-            for (var i = 0; i < len ; i++) {
-              count += intervalCandidatePosnTweetCounts[i][clickColumn];
-            }
-          } else {
-            count = intervalCandidatePosnTweetCounts[row][clickColumn];
-          }
-          innerHTML += (", "
-                        + count
-                        + " "
-                        + pluralizeWord("tweet", count)
-                        + " for this period.  ");
-          asinTweetHRef.innerHTML = innerHTML;
           try {
             getTweets(row, dataColumn);
           } catch(ex) {
@@ -131,51 +114,204 @@
         };
         google.visualization.events.addListener(chart, 'select', mouseEventHandler);
         initSidebar();
+
+        var olderLinksElement = document.getElementById('button_time_back');
+        <% if @hasLinkInfo[:prevLinks] %>
+          setPrevLink(olderLinksElement);
+          $('#button_time_back').attr('disabled', '');
+        <% else %>
+          checkOlderLinksID = setInterval(checkOlderLinks, 60 * 1000);
+        <% end %>
+        var newerLinksElement = document.getElementById('button_time_forward');
+        <% if @hasLinkInfo[:nextLinks] %>
+          setNextLink(newerLinksElement);
+          $('#button_time_forward').attr('disabled', '');
+        <% else %>
+          checkNewerLinksID = setInterval(checkNewerLinks, 60 * 1000);
+        <% end %>
+        
+        var showAnyCandidate = function() {
+          // Load the most recent tweets that are available for a candidate,
+          // starting with the first in the list.
+          // We should really update this based on the last candidate looked at,
+          // and see if we got to this page from an earlier page or a later one.
+          var clickNum, intervalNum;
+          for (clickNum = 0; clickNum < clickColumnToDataColumn.length; clickNum++) {
+              for (intervalNum = 3; intervalNum >= 0; intervalNum--) {
+                  if (intervalCandidatePosnTweetCounts[intervalNum][clickNum] > 0) {
+                      loadCandidateContent(clickNum, intervalNum);
+                      getTweets(intervalNum, clickNum);
+                      return;
+                  }
+              }
+          }
+        }
         
          $(document).ready(function() {
-          console.log("document ready");
-          
           try {
-            console.log("attempting to get tweets on page load");
-            loadCandidateContent(0, 3);
-            getTweets(2, 0); // load Barack Obama's most recent tweets
+            <% if @suggestedCandidate.nil? %>
+              showAnyCandidate();
+            <% else %>
+              // The controller specifies which candidate to load.
+              var candidateNum = <%= @suggestedCandidate %>;
+              // Figure out the click num for this
+              for (clickNum = 0; clickNum < clickColumnToDataColumn.length; clickNum++) {
+                if (clickColumnToDataColumn[clickNum] + 1 == candidateNum) {
+                  for (intervalNum = 3; intervalNum >= 0; intervalNum--) {
+                    if (intervalCandidatePosnTweetCounts[intervalNum][clickNum] > 0) {
+                        // loadCandidateContent - uses click columns
+                        loadCandidateContent(clickNum, intervalNum);
+                        // getTweets - uses data columns.
+                        getTweets(intervalNum, clickColumnToDataColumn[clickNum]);
+                        return;
+                    }
+                  }
+                }
+              }
+              // Still here? Do the default action
+              showAnyCandidate();
+            <% end %>
           } catch(ex) {
-            alert("prob in getTweets: " + ex)
+            alert("prob in drawVisualization: get first batch of tweets " + ex);
           }
         });
       }
+      var getTotalTweetCount = function(clickColumn, row) {
+          if (row === undefined) {
+            count = 0;
+            var len = intervalCandidatePosnTweetCounts.length;
+            for (var i = 0; i < len ; i++) {
+              count += intervalCandidatePosnTweetCounts[i][clickColumn];
+            }
+            return count;
+          } else {
+            return intervalCandidatePosnTweetCounts[row][clickColumn];
+          }
+      };
       
       var loadCandidateContent = function(clickColumn, row) {
-        console.log("Loading Candidate " + candidateNames[clickColumn]);
         var candidateName = candidateNames[clickColumn];
         var lastName = candidateName.split(/[\s,]+/)[1];
         
-        console.log('last name: ' + lastName);
         // set body class
         $("body").attr("class", candidateName);
         
         // update candidate bar
         var candidateImg = '<img src="/images/' + lastName + '.jpg" >'
-        console.log(candidateImg);
         $('div#buzz_candidate_img').html(candidateImg);
         
         var mmToMonth = new Array("Jan", "Feb", "Mar", "Apr", "May", "Jun", "July", "Aug", "Sep", "Oct", "Nov", "Dec");
 
-        var showLocalDate = function(timestamp)
-        {
-          var dt = new Date(timestamp);
-          var mm = mmToMonth[dt.getMonth()];
+        var getTimeParts = function(dt) {
           var hour = dt.getHours();
-          var ap = "am";
+          var ap;
           if (hour > 12) {
-            hour = hour - 12;
-            ap = "pm";
+              hour = hour - 12;
+              ap = "pm";
+          } else if (hour == 12) {
+              ap = "pm";
+          } else {
+              ap = "am";
+              if (hour == 0) {
+                  hour = 12;
+              }
           }
-          return mm + " " + dt.getDate() + ", " + dt.getFullYear() + " @ " + hour + ":00 " + ap;
+          return [hour, ap];
         }
-        $('div#buzz_candidate span#tweet_count').html(intervalCandidatePosnTweetCounts[row][clickColumn]);
-        $('div#buzz_candidate strong').html(candidateName);
-        $('div#buzz_candidate span#time').html("on " + showLocalDate(isoStartDates[row]));
+
+	var getSafeDate = function(timeStamp) {
+	    // Do it this way for Safari & IE.
+	    // Mozilla & Chrome js can parse ISO 8601 formats
+	    var m = /^(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d:\d\d:\d\d)([\-\+])(\d\d):(\d\d)/.exec(timeStamp);
+	    if (!m) return new Date(timeStamp);
+	    var yr = m[1], mon=m[2], day=m[3], hrMinSec=m[4], 
+	        sign=m[5], offsetHour=m[6], offsetMin=m[7];
+	    var timeStr = (yr + "/" + mon + "/" + day
+	                   + " "
+	                   + hrMinSec
+			   + " UTC"
+			   + sign
+			   + offsetHour
+			   + offsetMin);
+	    return new Date(timeStr);
+	};
+
+        var showLocalDate = function(startTime, endTime)
+        {
+            var sdt = getSafeDate(startTime);
+            var s_mm = mmToMonth[sdt.getMonth()];
+            var s_hour, s_ap;
+	    var parts = getTimeParts(sdt);
+	    s_hour = parts[0];
+	    s_ap = parts[1];
+
+            var edt = getSafeDate(endTime);
+            var e_mm = mmToMonth[edt.getMonth()];
+            var e_hour, e_ap;
+	    parts = getTimeParts(edt);
+	    e_hour = parts[0];
+	    e_ap = parts[1];
+	    
+	    var timeString;
+            if (sdt.getDate() == edt.getDate() || edt.getHours() == 0) {
+                timeString = ("on "
+                              + s_mm
+                              + " "
+                              + sdt.getDate()
+                              + ", "
+                              + sdt.getFullYear()
+                              + " @ "
+                              + s_hour
+                              + ":00");
+                if (s_ap == e_ap) {
+                    timeString += (" - "
+                                   + e_hour
+                                   + ":00 "
+                                   + e_ap);
+                } else {
+                    timeString += (s_ap
+                                   + " - "
+                                   + e_hour
+                                   + ":00 "
+                                   + " "
+                                   + e_ap);
+                }
+            } else {
+                // Spans different days
+                timeString = ("on "
+                              + s_mm
+                              + " "
+                              + sdt.getDate()
+                              + ", "
+                              + sdt.getFullYear()
+                              + ", "
+                              + s_hour
+                              + ":00"
+                              + s_ap
+                              + " - "
+                              + e_mm
+                              + " "
+                              + edt.getDate()
+                              + ", "
+                              + e_hour
+                              + ":00 "
+                              + " "
+                              + e_ap);
+            }
+            return timeString;
+        }
+    	var startTime, endTime;
+        if ((row) === "undefined") {
+            startTime = isoStartDates[0];
+            endTime = gEndDate;
+        } else {
+            startTime = isoStartDates[row];
+            endTime = getEndDate(row);
+        }
+        var startTime = typeof(row) == "undefined" ? isoStartDates[0] : isoStartDates[row];
+        $('div#buzz_candidate span#tweet_count').html(getTotalTweetCount(clickColumn, row));
+        $('div#buzz_candidate div#buzz_candidate_details strong').html(candidateName);
+        $('div#buzz_candidate div#buzz_candidate_details span#time').html(showLocalDate(startTime, endTime));
       }
 
       google.setOnLoadCallback(drawVisualization);
@@ -193,11 +329,14 @@
         if (result) {
           clearInterval(checkOlderLinksID);
           checkOlderLinksID = 0;
-          var olderLinksElement = document.getElementById('olderLinkWrapper');
-          olderLinksElement.setAttribute("hasLink", 1);
-          olderLinksElement.innerHTML = '<%= link_to "Older", :controller => "tweets", :action => "index", :startDateISO => @linkInfo[:prevLinks][:startDate],
-                                       :endDateISO   => @linkInfo[:prevLinks][:endDate]  %>';
+          var olderLinksElement = document.getElementById('button_time_back');
+	  setPrevLink(olderLinksElement);
         }
+      };
+      
+      var setPrevLink = function(olderLinksElement) {
+          olderLinksElement.setAttribute("hasLink", 1);
+          olderLinksElement.innerHTML = '<%= link_to "&laquo; Older".html_safe, :controller => "tweets", :action => "index", :startDateISO => @linkInfo[:prevLinks][:startDate], :endDateISO   => @linkInfo[:prevLinks][:endDate]  %>';
       };
       var checkOlderLinks = function() {
         jQuery.getJSON(checkOlderLinksURL,
@@ -211,11 +350,13 @@
         if (result) {
           clearInterval(checkNewerLinksID);
           checkNewerLinksID = 0;
-          var newerLinksElement = document.getElementById('newerLinkWrapper');
-          newerLinksElement.setAttribute("hasLink", 1);
-          newerLinksElement.innerHTML = '<%= link_to "Newer", :controller => "tweets", :action => "index", :startDateISO => @linkInfo[:nextLinks][:startDate],
-                                       :endDateISO   => @linkInfo[:nextLinks][:endDate]  %>';
+          var newerLinksElement = document.getElementById('button_time_forward');
+	  setNextLink(newerLinksElement);
         }
+      };
+      var setNextLink = function(newerLinksElement) {
+          newerLinksElement.setAttribute("hasLink", 1);
+          newerLinksElement.innerHTML = '<%= link_to "Newer &raquo;".html_safe, :controller => "tweets", :action => "index", :startDateISO => @linkInfo[:nextLinks][:startDate], :endDateISO   => @linkInfo[:nextLinks][:endDate]  %>';
       };
       var checkNewerLinks = function() {
         jQuery.getJSON(checkNewerLinksURL,
@@ -223,14 +364,6 @@
                         endDateISO: gEndDate},
                         updateNewerLinks);
       };
-      
-      if (!hasActiveLink('olderLinkWrapper')) {
-        //Check once a minute
-        checkOlderLinksID = setInterval(checkOlderLinks, 60 * 1000);
-      }
-      if (!hasActiveLink('newerLinkWrapper')) {
-        checkNewerLinksID = setInterval(checkNewerLinks, 60 * 1000);
-      }
       
       var getEndDate = function(row) {
         if (row < gNumRows - 1) {
@@ -243,14 +376,14 @@
       var getTweets = function(row, dataColumn) {
         var tweets_url = "<%= url_for :controller => 'tweets', :action => 'getTweets'  %>";
         var wordCloud_url = "<%= url_for :controller => 'tweets', :action => 'getWordCloud'  %>";
-        var startDate, endDate;
-        if (row) {
-          startDate = isoStartDates[row];
-              endDate = getEndDate(row);
-        } else {
-          startDate = isoStartDates[0];
-              endDate = gEndDate;
-        }
+	var startDate, endDate;
+	if (typeof(row) != "undefined") {
+	  startDate = isoStartDates[row];
+          endDate = getEndDate(row);
+	} else {
+	  startDate = isoStartDates[0];
+          endDate = gEndDate;
+	}
         var localCallback = function(json) {
           getTweetCallback(json);
           setTimeout(function() {
@@ -273,8 +406,9 @@
   <link href='http://fonts.googleapis.com/css?family=Paytone+One&subset=latin&v2' rel='stylesheet' type='text/css'>
 </head>
 <body>
+
   <!-- Stackato corner-banner -->
-  <div style="height: 149px; overflow: hidden; position: fixed; bottom: 0; left:0;">
+  <div id="branding">
       <a href="http://www.activestate.com/cloud"><img  alt="Powered by Stackato"
       src="http://templates.activestate.com/images/stackato-ribbon/bottom-left.png"></a>
   </div>
@@ -282,26 +416,21 @@
   <div id="buzz_content">
     <div id="buzz_title">
         <div class="container">
-            <a id="buzz_tweet" class="buzz_button_link"><img src="/images/twitter_newbird_white.png" height=35px alt="Twitter" /></a>
+            <a id="buzz_tweet" class="buzz_button_link"
+               href="http://twitter.com/share?url=http%3A%2F%2Frails-prezbuzz.stackato.com&text=Check%20out%20%23candidatebuzz!%20Powered%20by%20%23stackato" target="_blank"><img src="/images/twitter_newbird_white.png" height=35px alt="Twitter" /></a>
             <a id="buzz_help" class="buzz_button_link">?</a>
             <h1>Candidate Buzz</h1>
         </div>
     </div>
-
-<!--     <p style="color: green"><%= notice %></p> -->
+    
     <div id="buzz_chart">
+
       <%= yield %>
-  
+
     <% if defined? @maxSize %>
-      <div id="visualization"></div>
-      <% if @hasLinkInfo[:prevLinks] %>
-        <div id="button_time_back" class="buzz_button_link" hasLink="1"><%= link_to "&laquo; Older".html_safe, {:controller => "tweets", :action => "index", :startDateISO => @linkInfo[:prevLinks][:startDate],
-                                         :endDateISO   => @linkInfo[:prevLinks][:endDate]} %></div>
-      <% end %>
-      <% if @hasLinkInfo[:nextLinks] %>
-        <div id="button_time_forward" class="buzz_button_link" hasLink="1" hasLink="0"><%= link_to "Newer &raquo;".html_safe, :controller => "tweets", :action => "index", :startDateISO => @linkInfo[:nextLinks][:startDate],
-                                         :endDateISO   => @linkInfo[:nextLinks][:endDate] %></div>
-      <% end %>
+    <div id="visualization"></div>
+      <div id="button_time_back" class="buzz_button_link" disabled="disabled">&laquo; Older</div>
+      <div id="button_time_forward" class="buzz_button_link" disabled="disabled">Newer &raquo;</div>
     </div>
     <div id="buzz_candidate">
 
@@ -322,10 +451,6 @@
         <ul id="holder">
           
         </ul>
-        <div id="twitter_controls">
-          <a class="swFB buzz_button_link" id="button_back" value="Back" pgoffset="-1">&laquo;</a>
-          <a class="swFB buzz_button_link" id="button_forward" value="Forward" pgoffset="1">&raquo;</a>
-        </div>
       </div>
       <div id="word_cloud_wrapper" >
         <!--Word cloud will go here-->
@@ -338,21 +463,32 @@
           </p>
       </div>
     </div>
-
-      <div id="selectedColumn" style="display: none;"></div>
-      <div id="twitterLink" style="display: none;">
-        Show tweets for <span id="asinTweetHRef"></span>
-      </div>
-      <div id="stuff-container" style="display: none;">
-        <div id="tweetDump" style="display: none;">
-            <p id='twitterHeader'>Content from </span>
-            <%= image_tag "logo_twitter_withbird_h24xw129_allblue.png" %>
-            </p>
-            
-        </div>
-        
-      </div>
-    <% end %>
+    
+<% end %>
   </div>
+  <div id="help_content" class="basic-modal-content">
+    <h3>CandidateBuzz Instructions</h3>
+    <br />
+    <p>
+      CandidateBuzz shows you tweets about the current batch of Republican Presidential candidates and Barack Obama.
+    <p>
+      To change which candidate you're viewing, click on a bar in the chart to load tweets about a candidate in a specific hour, or click on their colored square in the legend to load all the tweets in the time period currently displayed in the chart.
+    <p>
+    <p>
+      The word cloud is generated from the content in the tweets.  Some of the words in the cloud are linked to sites that were mentioned in the tweets.
+    </p>
+  </div>
+  <script>
+    $(document).ready(function() {
+      var settings = {
+        showArrows: true,
+      };
+      var holder = $('#buzz_tweets').jScrollPane(settings);
+      $("#buzz_help").click(function(e) {
+        e.preventDefault();
+        $("#help_content").modal();
+      });
+    });
+  </script>
 </body>
 </html>
