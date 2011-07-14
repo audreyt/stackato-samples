@@ -3,8 +3,8 @@ Catalyst Basics Sample
 
 A very basic Catalyst web application taken from the Catalyst Tutorial:
 
-  http://search.cpan.org/~bobtfish/Catalyst-Manual-5.8007/lib/Catalyst/Manual/Tutorial/02_CatalystBasics.pod
-
+  http://search.cpan.org/dist/Catalyst-Manual/lib/Catalyst/Manual/Tutorial/02_CatalystBasics.pod
+  
 Copyright 2006-2010, Kennedy Clark, under the Creative Commons
 Attribution Share-Alike License Version 3.0
 (http://creativecommons.org/licenses/by-sa/3.0/us/).
@@ -24,7 +24,7 @@ install several Catalyst modules first. These are available via PPM:
     ppm install Catalyst::View::TT
     ppm install Config::General
 
-To start the server (localhost:3000):
+To start the server (http://localhost:3000):
 
     perl script/hello_server.pl
 
@@ -35,4 +35,4 @@ Deploying to Stackato
 When pushing the application to Stackato, the dependencies are installed
 automatically based on the list in requirements.txt. To push the app:
 
-    stackato push tut3
+    stackato push tut2
