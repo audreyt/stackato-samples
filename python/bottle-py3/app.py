@@ -2,10 +2,10 @@ import os
 import sys
 from bottle import route, run
 
-@route('/hello/:name')
-def index(name='World'):
+@route('/')
+def index():
     pyver = '.'.join(map(str, tuple(sys.version_info)[:3]))
-    return 'Hello %s! (from <b>Python %s</b>)' % (name, pyver)
+    return 'Hello World! (from <b>Python %s</b>)' % (name, pyver)
 
 
 if __name__ == '__main__':

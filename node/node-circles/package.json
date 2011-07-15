@@ -6,6 +6,6 @@
         ,"socket.io": "0.6.17"
         ,"express": "*"
         ,"express-expose": "*"
-        ,"zzzmaga": "*"
+        ,"maga": "*"
     }
 }
