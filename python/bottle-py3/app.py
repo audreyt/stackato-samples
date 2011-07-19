@@ -5,7 +5,7 @@ from bottle import route, run
 @route('/')
 def index():
     pyver = '.'.join(map(str, tuple(sys.version_info)[:3]))
-    return 'Hello World! (from <b>Python %s</b>)' % (name, pyver)
+    return 'Hello World! (from <b>Python %s</b>)' % (pyver,)
 
 
 if __name__ == '__main__':
