@@ -33,7 +33,7 @@ app->start;
 __DATA__
 
 @@ clock.html.ep
-% my ($second, $minute, $hour) = (localtime(time))[0, 1, 2];
+% my ($second, $minute, $hour) = map { sprintf("%02s", $_) } (localtime(time))[0, 1, 2];
 <%= link_to clock => begin %>
   The time is <%= $hour %>:<%= $minute %>:<%= $second %>.
 <% end %>
